@@ -47,7 +47,7 @@ class TestPacket(unittest.TestCase):
         a = ['51-{"_placeholder":true,"num":0}', b'1234']
         b = ['51-{"num":0,"_placeholder":true}', b'1234']
         encoded_packet = pkt.encode()
-        assert encoded_packet == a or encoded_packet == b
+        assert encoded_packet in [a, b]
 
     def test_decode_binary_event_packet(self):
         pkt = packet.Packet(encoded_packet='51-{"_placeholder":true,"num":0}')
@@ -76,7 +76,7 @@ class TestPacket(unittest.TestCase):
         a = ['61-{"_placeholder":true,"num":0}', b'1234']
         b = ['61-{"num":0,"_placeholder":true}', b'1234']
         encoded_packet = pkt.encode()
-        assert encoded_packet == a or encoded_packet == b
+        assert encoded_packet in [a, b]
 
     def test_decode_binary_ack_packet(self):
         pkt = packet.Packet(encoded_packet='61-{"_placeholder":true,"num":0}')

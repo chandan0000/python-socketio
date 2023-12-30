@@ -51,7 +51,7 @@ class TestNamespace(unittest.TestCase):
         ns = MyNamespace('/foo')
         ns._set_server(mock.MagicMock())
         ns.trigger_event('another_custom_message', 'sid', {'data': 'data'})
-        assert result == {}
+        assert not result
 
     def test_emit(self):
         ns = namespace.Namespace('/foo')
@@ -227,7 +227,7 @@ class TestNamespace(unittest.TestCase):
         ns = MyNamespace('/foo')
         ns._set_client(mock.MagicMock())
         ns.trigger_event('another_custom_message', 'sid', {'data': 'data'})
-        assert result == {}
+        assert not result
 
     def test_emit_client(self):
         ns = namespace.ClientNamespace('/foo')

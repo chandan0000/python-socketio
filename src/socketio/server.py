@@ -511,7 +511,7 @@ class Server(base_server.BaseServer):
         namespace = namespace or '/'
         sid = None
         if namespace in self.handlers or namespace in self.namespace_handlers \
-                or self.namespaces == '*' or namespace in self.namespaces:
+                    or self.namespaces == '*' or namespace in self.namespaces:
             sid = self.manager.connect(eio_sid, namespace)
         if sid is None:
             self._send_packet(eio_sid, self.packet_class(
@@ -538,7 +538,7 @@ class Server(base_server.BaseServer):
             fail_reason = exc.error_args
             success = False
 
-        if success is False:
+        if not success:
             if self.always_connect:
                 self.manager.pre_disconnect(sid, namespace)
                 self._send_packet(eio_sid, self.packet_class(
@@ -646,8 +646,7 @@ class Server(base_server.BaseServer):
                 self._handle_event(eio_sid, pkt.namespace, pkt.id, pkt.data)
             elif pkt.packet_type == packet.ACK:
                 self._handle_ack(eio_sid, pkt.namespace, pkt.id, pkt.data)
-            elif pkt.packet_type == packet.BINARY_EVENT or \
-                    pkt.packet_type == packet.BINARY_ACK:
+            elif pkt.packet_type in [packet.BINARY_EVENT, packet.BINARY_ACK]:
                 self._binary_packet[eio_sid] = pkt
             elif pkt.packet_type == packet.CONNECT_ERROR:
                 raise ValueError('Unexpected CONNECT_ERROR packet.')

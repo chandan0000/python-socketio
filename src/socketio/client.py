@@ -124,7 +124,7 @@ class Client(base_client.BaseClient):
         if namespaces is None:
             namespaces = list(set(self.handlers.keys()).union(
                 set(self.namespace_handlers.keys())))
-            if len(namespaces) == 0:
+            if not namespaces:
                 namespaces = ['/']
         elif isinstance(namespaces, str):
             namespaces = [namespaces]
@@ -201,12 +201,10 @@ class Client(base_client.BaseClient):
         namespace = namespace or '/'
         if namespace not in self.namespaces:
             raise exceptions.BadNamespaceError(
-                namespace + ' is not a connected namespace.')
+                f'{namespace} is not a connected namespace.'
+            )
         self.logger.info('Emitting event "%s" [%s]', event, namespace)
-        if callback is not None:
-            id = self._generate_ack_id(namespace, callback)
-        else:
-            id = None
+        id = None if callback is None else self._generate_ack_id(namespace, callback)
         # tuples are expanded to multiple arguments, everything else is sent
         # as a single argument
         if isinstance(data, tuple):
@@ -322,9 +320,7 @@ class Client(base_client.BaseClient):
     def _get_real_value(self, value):
         """Return the actual value, for parameters that can also be given as
         callables."""
-        if not callable(value):
-            return value
-        return value()
+        return value if not callable(value) else value()
 
     def _send_packet(self, pkt):
         """Send a Socket.IO packet to the server."""
@@ -338,7 +334,7 @@ class Client(base_client.BaseClient):
     def _handle_connect(self, namespace, data):
         namespace = namespace or '/'
         if namespace not in self.namespaces:
-            self.logger.info('Namespace {} is connected'.format(namespace))
+            self.logger.info(f'Namespace {namespace} is connected')
             self.namespaces[namespace] = (data or {}).get('sid', self.sid)
             self._trigger_event('connect', namespace=namespace)
             self._connect_event.set()
@@ -358,8 +354,8 @@ class Client(base_client.BaseClient):
     def _handle_event(self, namespace, id, data):
         namespace = namespace or '/'
         self.logger.info('Received event "%s" [%s]', data[0], namespace)
-        r = self._trigger_event(data[0], namespace, *data[1:])
         if id is not None:
+            r = self._trigger_event(data[0], namespace, *data[1:])
             # send ACK packet with the response returned by the handler
             # tuples are expanded as multiple arguments
             if r is None:
@@ -387,8 +383,7 @@ class Client(base_client.BaseClient):
 
     def _handle_error(self, namespace, data):
         namespace = namespace or '/'
-        self.logger.info('Connection to namespace {} was rejected'.format(
-            namespace))
+        self.logger.info(f'Connection to namespace {namespace} was rejected')
         if data is None:
             data = tuple()
         elif not isinstance(data, (tuple, list)):
@@ -426,8 +421,7 @@ class Client(base_client.BaseClient):
         while True:
             delay = current_delay
             current_delay *= 2
-            if delay > self.reconnection_delay_max:
-                delay = self.reconnection_delay_max
+            delay = min(delay, self.reconnection_delay_max)
             delay += self.randomization_factor * (2 * random.random() - 1)
             self.logger.info(
                 'Connection failed, new attempt in {:.02f} seconds'.format(
@@ -452,7 +446,7 @@ class Client(base_client.BaseClient):
                 self._reconnect_task = None
                 break
             if self.reconnection_attempts and \
-                    attempt_count >= self.reconnection_attempts:
+                        attempt_count >= self.reconnection_attempts:
                 self.logger.info(
                     'Maximum reconnection attempts reached, giving up')
                 for n in self.connection_namespaces:
@@ -489,8 +483,7 @@ class Client(base_client.BaseClient):
                 self._handle_event(pkt.namespace, pkt.id, pkt.data)
             elif pkt.packet_type == packet.ACK:
                 self._handle_ack(pkt.namespace, pkt.id, pkt.data)
-            elif pkt.packet_type == packet.BINARY_EVENT or \
-                    pkt.packet_type == packet.BINARY_ACK:
+            elif pkt.packet_type in [packet.BINARY_EVENT, packet.BINARY_ACK]:
                 self._binary_packet = pkt
             elif pkt.packet_type == packet.CONNECT_ERROR:
                 self._handle_error(pkt.namespace, pkt.data)

@@ -68,7 +68,7 @@ class TestAsyncNamespace(unittest.TestCase):
         _run(
             ns.trigger_event('another_custom_message', 'sid', {'data': 'data'})
         )
-        assert result == {}
+        assert not result
 
     def test_emit(self):
         ns = async_namespace.AsyncNamespace('/foo')
@@ -289,7 +289,7 @@ class TestAsyncNamespace(unittest.TestCase):
         _run(
             ns.trigger_event('another_custom_message', 'sid', {'data': 'data'})
         )
-        assert result == {}
+        assert not result
 
     def test_emit_client(self):
         ns = async_namespace.AsyncClientNamespace('/foo')

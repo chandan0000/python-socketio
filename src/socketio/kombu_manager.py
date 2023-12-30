@@ -86,7 +86,7 @@ class KombuManager(PubSubManager):  # pragma: no cover
         return kombu.Exchange(self.channel, **options)
 
     def _queue(self):
-        queue_name = 'flask-socketio.' + str(uuid.uuid4())
+        queue_name = f'flask-socketio.{str(uuid.uuid4())}'
         options = {'durable': False, 'queue_arguments': {'x-expires': 300000}}
         options.update(self.queue_options)
         return kombu.Queue(queue_name, self._exchange(), **options)
@@ -121,14 +121,14 @@ class KombuManager(PubSubManager):  # pragma: no cover
             try:
                 with self._connection() as connection:
                     with connection.SimpleQueue(reader_queue) as queue:
+                        retry_sleep = 1
                         while True:
                             message = queue.get(block=True)
                             message.ack()
                             yield message.payload
-                            retry_sleep = 1
             except (OSError, kombu.exceptions.KombuError):
                 self._get_logger().error(
-                    'Cannot receive from rabbitmq... '
-                    'retrying in {} secs'.format(retry_sleep))
+                    f'Cannot receive from rabbitmq... retrying in {retry_sleep} secs'
+                )
                 time.sleep(retry_sleep)
                 retry_sleep = min(retry_sleep * 2, 60)

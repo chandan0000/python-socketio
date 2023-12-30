@@ -50,14 +50,14 @@ class Packet(object):
         the binary components and the remaining ones the binary attachments.
         """
         encoded_packet = str(self.packet_type)
-        if self.packet_type == BINARY_EVENT or self.packet_type == BINARY_ACK:
+        if self.packet_type in [BINARY_EVENT, BINARY_ACK]:
             data, attachments = self._deconstruct_binary(self.data)
-            encoded_packet += str(len(attachments)) + '-'
+            encoded_packet += f'{len(attachments)}-'
         else:
             data = self.data
             attachments = None
         if self.namespace is not None and self.namespace != '/':
-            encoded_packet += self.namespace + ','
+            encoded_packet += f'{self.namespace},'
         if self.id is not None:
             encoded_packet += str(self.id)
         if data is not None:
@@ -74,7 +74,7 @@ class Packet(object):
         """
         ep = encoded_packet
         try:
-            self.packet_type = int(ep[0:1])
+            self.packet_type = int(ep[:1])
         except TypeError:
             self.packet_type = ep
             ep = ''
@@ -83,22 +83,22 @@ class Packet(object):
         ep = ep[1:]
         dash = ep.find('-')
         attachment_count = 0
-        if dash > 0 and ep[0:dash].isdigit():
+        if dash > 0 and ep[:dash].isdigit():
             if dash > 10:
                 raise ValueError('too many attachments')
-            attachment_count = int(ep[0:dash])
+            attachment_count = int(ep[:dash])
             ep = ep[dash + 1:]
-        if ep and ep[0:1] == '/':
+        if ep and ep[:1] == '/':
             sep = ep.find(',')
             if sep == -1:
                 self.namespace = ep
                 ep = ''
             else:
-                self.namespace = ep[0:sep]
+                self.namespace = ep[:sep]
                 ep = ep[sep + 1:]
             q = self.namespace.find('?')
             if q != -1:
-                self.namespace = self.namespace[0:q]
+                self.namespace = self.namespace[:q]
         if ep and ep[0].isdigit():
             i = 1
             end = len(ep)

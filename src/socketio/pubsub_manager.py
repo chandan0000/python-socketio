@@ -34,7 +34,7 @@ class PubSubManager(Manager):
         super().initialize()
         if not self.write_only:
             self.thread = self.server.start_background_task(self._thread)
-        self._get_logger().info(self.name + ' backend initialized.')
+        self._get_logger().info(f'{self.name} backend initialized.')
 
     def emit(self, event, data, namespace=None, room=None, skip_sid=None,
              callback=None, **kwargs):
@@ -72,12 +72,11 @@ class PubSubManager(Manager):
         if self.is_connected(sid, namespace):
             # client is in this server, so we can disconnect directly
             return super().can_disconnect(sid, namespace)
-        else:
-            # client is in another server, so we post request to the queue
-            message = {'method': 'disconnect', 'sid': sid,
-                       'namespace': namespace or '/', 'host_id': self.host_id}
-            self._handle_disconnect(message)  # handle in this host
-            self._publish(message)  # notify other hosts
+        # client is in another server, so we post request to the queue
+        message = {'method': 'disconnect', 'sid': sid,
+                   'namespace': namespace or '/', 'host_id': self.host_id}
+        self._handle_disconnect(message)  # handle in this host
+        self._publish(message)  # notify other hosts
 
     def disconnect(self, sid, namespace=None, **kwargs):
         if kwargs.get('ignore_queue'):
@@ -91,19 +90,17 @@ class PubSubManager(Manager):
         if self.is_connected(sid, namespace):
             # client is in this server, so we can add to the room directly
             return super().enter_room(sid, namespace, room, eio_sid=eio_sid)
-        else:
-            message = {'method': 'enter_room', 'sid': sid, 'room': room,
-                       'namespace': namespace or '/', 'host_id': self.host_id}
-            self._publish(message)  # notify other hosts
+        message = {'method': 'enter_room', 'sid': sid, 'room': room,
+                   'namespace': namespace or '/', 'host_id': self.host_id}
+        self._publish(message)  # notify other hosts
 
     def leave_room(self, sid, namespace, room):
         if self.is_connected(sid, namespace):
             # client is in this server, so we can remove from the room directly
             return super().leave_room(sid, namespace, room)
-        else:
-            message = {'method': 'leave_room', 'sid': sid, 'room': room,
-                       'namespace': namespace or '/', 'host_id': self.host_id}
-            self._publish(message)  # notify other hosts
+        message = {'method': 'leave_room', 'sid': sid, 'room': room,
+                   'namespace': namespace or '/', 'host_id': self.host_id}
+        self._publish(message)  # notify other hosts
 
     def close_room(self, room, namespace=None):
         message = {'method': 'close_room', 'room': room,
@@ -204,8 +201,7 @@ class PubSubManager(Manager):
                     except:
                         pass
             if data and 'method' in data:
-                self._get_logger().debug('pubsub message: {}'.format(
-                    data['method']))
+                self._get_logger().debug(f"pubsub message: {data['method']}")
                 try:
                     if data['method'] == 'callback':
                         self._handle_callback(data)

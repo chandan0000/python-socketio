@@ -42,9 +42,12 @@ class AsyncManager(BaseManager):
                        for p in encoded_packet]
             for sid, eio_sid in self.get_participants(namespace, room):
                 if sid not in skip_sid:
-                    for p in eio_pkt:
-                        tasks.append(asyncio.create_task(
-                            self.server._send_eio_packet(eio_sid, p)))
+                    tasks.extend(
+                        asyncio.create_task(
+                            self.server._send_eio_packet(eio_sid, p)
+                        )
+                        for p in eio_pkt
+                    )
         else:
             # callbacks are used, so each recipient must be sent a packet that
             # contains a unique callback id
@@ -58,7 +61,7 @@ class AsyncManager(BaseManager):
                         id=id)
                     tasks.append(asyncio.create_task(
                         self.server._send_packet(eio_sid, pkt)))
-        if tasks == []:  # pragma: no cover
+        if not tasks:  # pragma: no cover
             return
         await asyncio.wait(tasks)
 

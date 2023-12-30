@@ -55,7 +55,7 @@ class ZmqManager(PubSubManager):  # pragma: no cover
 
         r = re.compile(r':\d+\+\d+$')
         if not (url.startswith('zmq+tcp://') and r.search(url)):
-            raise RuntimeError('unexpected connection string: ' + url)
+            raise RuntimeError(f'unexpected connection string: {url}')
 
         url = url.replace('zmq+', '')
         (sink_url, sub_port) = url.split('+')

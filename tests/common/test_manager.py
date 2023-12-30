@@ -154,7 +154,7 @@ class TestBaseManager(unittest.TestCase):
         assert cb.call_count == 0
 
     def test_get_namespaces(self):
-        assert list(self.bm.get_namespaces()) == []
+        assert not list(self.bm.get_namespaces())
         self.bm.connect('123', '/')
         self.bm.connect('123', '/foo')
         namespaces = list(self.bm.get_namespaces())
