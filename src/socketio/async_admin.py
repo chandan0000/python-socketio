@@ -198,20 +198,20 @@ class InstrumentedAsyncServer:
         t = time.time()
         self.sio.manager._timestamps[sid] = t
         serialized_socket = self.serialize_socket(sid, namespace, eio_sid)
-        await self.sio.emit('socket_connected', (
-            serialized_socket,
-            datetime.utcfromtimestamp(t).isoformat() + 'Z',
-        ), namespace=self.admin_namespace)
+        await self.sio.emit(
+            'socket_connected',
+            (serialized_socket, f'{datetime.utcfromtimestamp(t).isoformat()}Z'),
+            namespace=self.admin_namespace,
+        )
         return sid
 
     async def _disconnect(self, sid, namespace, **kwargs):
         del self.sio.manager._timestamps[sid]
-        await self.sio.emit('socket_disconnected', (
-            namespace,
-            sid,
-            'N/A',
-            datetime.utcnow().isoformat() + 'Z',
-        ), namespace=self.admin_namespace)
+        await self.sio.emit(
+            'socket_disconnected',
+            (namespace, sid, 'N/A', f'{datetime.utcnow().isoformat()}Z'),
+            namespace=self.admin_namespace,
+        )
         return await self.sio.manager.__disconnect(sid, namespace, **kwargs)
 
     async def _check_for_upgrade(self, eio_sid, sid,
@@ -233,22 +233,22 @@ class InstrumentedAsyncServer:
         ret = self.sio.manager.__basic_enter_room(sid, namespace, room,
                                                   eio_sid)
         if room:
-            self.admin_queue.append(('room_joined', (
-                namespace,
-                room,
-                sid,
-                datetime.utcnow().isoformat() + 'Z',
-            )))
+            self.admin_queue.append(
+                (
+                    'room_joined',
+                    (namespace, room, sid, f'{datetime.utcnow().isoformat()}Z'),
+                )
+            )
         return ret
 
     def _basic_leave_room(self, sid, namespace, room):
         if room:
-            self.admin_queue.append(('room_left', (
-                namespace,
-                room,
-                sid,
-                datetime.utcnow().isoformat() + 'Z',
-            )))
+            self.admin_queue.append(
+                (
+                    'room_left',
+                    (namespace, room, sid, f'{datetime.utcnow().isoformat()}Z'),
+                )
+            )
         return self.sio.manager.__basic_leave_room(sid, namespace, room)
 
     async def _emit(self, event, data, namespace, room=None, skip_sid=None,
@@ -258,29 +258,32 @@ class InstrumentedAsyncServer:
             callback=callback, **kwargs)
         if namespace != self.admin_namespace:
             event_data = [event] + list(data) if isinstance(data, tuple) \
-                else [data]
+                    else [data]
             if not isinstance(skip_sid, list):  # pragma: no branch
                 skip_sid = [skip_sid]
             for sid, _ in self.sio.manager.get_participants(namespace, room):
                 if sid not in skip_sid:
-                    await self.sio.emit('event_sent', (
-                        namespace,
-                        sid,
-                        event_data,
-                        datetime.utcnow().isoformat() + 'Z',
-                    ), namespace=self.admin_namespace)
+                    await self.sio.emit(
+                        'event_sent',
+                        (
+                            namespace,
+                            sid,
+                            event_data,
+                            f'{datetime.utcnow().isoformat()}Z',
+                        ),
+                        namespace=self.admin_namespace,
+                    )
         return ret
 
     async def _handle_event_internal(self, server, sid, eio_sid, data,
                                      namespace, id):
         ret = await self.sio.__handle_event_internal(server, sid, eio_sid,
                                                      data, namespace, id)
-        await self.sio.emit('event_received', (
-            namespace,
-            sid,
-            data,
-            datetime.utcnow().isoformat() + 'Z',
-        ), namespace=self.admin_namespace)
+        await self.sio.emit(
+            'event_received',
+            (namespace, sid, data, f'{datetime.utcnow().isoformat()}Z'),
+            namespace=self.admin_namespace,
+        )
         return ret
 
     async def _handle_eio_connect(self, eio_sid, environ):
@@ -332,20 +335,22 @@ class InstrumentedAsyncServer:
         eio_sid = socket.sid
         t = time.time()
         for namespace in self.sio.manager.get_namespaces():
-            sid = self.sio.manager.sid_from_eio_sid(eio_sid, namespace)
-            if sid:
+            if sid := self.sio.manager.sid_from_eio_sid(eio_sid, namespace):
                 serialized_socket = self.serialize_socket(sid, namespace,
                                                           eio_sid)
-                await self.sio.emit('socket_connected', (
-                    serialized_socket,
-                    datetime.utcfromtimestamp(t).isoformat() + 'Z',
-                ), namespace=self.admin_namespace)
+                await self.sio.emit(
+                    'socket_connected',
+                    (
+                        serialized_socket,
+                        f'{datetime.utcfromtimestamp(t).isoformat()}Z',
+                    ),
+                    namespace=self.admin_namespace,
+                )
         return await socket.__send_ping()
 
     async def _emit_server_stats(self):
         start_time = time.time()
-        namespaces = list(self.sio.handlers.keys())
-        namespaces.sort()
+        namespaces = sorted(self.sio.handlers.keys())
         while not self.stop_stats_event.is_set():
             await self.sio.sleep(self.server_stats_interval)
             await self.sio.emit('server_stats', {
@@ -375,7 +380,7 @@ class InstrumentedAsyncServer:
         socket = self.sio.eio._get_socket(eio_sid)
         environ = self.sio.environ.get(eio_sid, {})
         tm = self.sio.manager._timestamps[sid] if sid in \
-            self.sio.manager._timestamps else 0
+                self.sio.manager._timestamps else 0
         return {
             'id': sid,
             'clientId': eio_sid,
@@ -384,15 +389,21 @@ class InstrumentedAsyncServer:
             'data': {},
             'handshake': {
                 'address': environ.get('REMOTE_ADDR', ''),
-                'headers': {k[5:].lower(): v for k, v in environ.items()
-                            if k.startswith('HTTP_')},
-                'query': {k: v[0] if len(v) == 1 else v for k, v in parse_qs(
-                    environ.get('QUERY_STRING', '')).items()},
+                'headers': {
+                    k[5:].lower(): v
+                    for k, v in environ.items()
+                    if k.startswith('HTTP_')
+                },
+                'query': {
+                    k: v[0] if len(v) == 1 else v
+                    for k, v in parse_qs(environ.get('QUERY_STRING', '')).items()
+                },
                 'secure': environ.get('wsgi.url_scheme', '') == 'https',
                 'url': environ.get('PATH_INFO', ''),
                 'issued': tm * 1000,
-                'time': datetime.utcfromtimestamp(tm).isoformat() + 'Z'
-                if tm else '',
+                'time': f'{datetime.utcfromtimestamp(tm).isoformat()}Z'
+                if tm
+                else '',
             },
             'rooms': self.sio.manager.get_rooms(sid, namespace),
         }

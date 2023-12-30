@@ -524,7 +524,7 @@ class AsyncServer(base_server.BaseServer):
         namespace = namespace or '/'
         sid = None
         if namespace in self.handlers or namespace in self.namespace_handlers \
-                or self.namespaces == '*' or namespace in self.namespaces:
+                    or self.namespaces == '*' or namespace in self.namespaces:
             sid = await self.manager.connect(eio_sid, namespace)
         if sid is None:
             await self._send_packet(eio_sid, self.packet_class(
@@ -551,7 +551,7 @@ class AsyncServer(base_server.BaseServer):
             fail_reason = exc.error_args
             success = False
 
-        if success is False:
+        if not success:
             if self.always_connect:
                 self.manager.pre_disconnect(sid, namespace)
                 await self._send_packet(eio_sid, self.packet_class(
@@ -622,22 +622,20 @@ class AsyncServer(base_server.BaseServer):
             if event in self.handlers[namespace]:
                 handler = self.handlers[namespace][event]
             elif event not in self.reserved_events and \
-                    '*' in self.handlers[namespace]:
+                        '*' in self.handlers[namespace]:
                 handler = self.handlers[namespace]['*']
                 args = (event, *args)
-            if handler:
-                if asyncio.iscoroutinefunction(handler):
-                    try:
-                        ret = await handler(*args)
-                    except asyncio.CancelledError:  # pragma: no cover
-                        ret = None
-                else:
-                    ret = handler(*args)
-                return ret
-            else:
+            if not handler:
                 return self.not_handled
 
-        # or else, forward the event to a namepsace handler if one exists
+            if asyncio.iscoroutinefunction(handler):
+                try:
+                    ret = await handler(*args)
+                except asyncio.CancelledError:  # pragma: no cover
+                    ret = None
+            else:
+                ret = handler(*args)
+            return ret
         elif namespace in self.namespace_handlers:  # pragma: no branch
             return await self.namespace_handlers[namespace].trigger_event(
                 event, *args)
@@ -673,8 +671,7 @@ class AsyncServer(base_server.BaseServer):
             elif pkt.packet_type == packet.ACK:
                 await self._handle_ack(eio_sid, pkt.namespace, pkt.id,
                                        pkt.data)
-            elif pkt.packet_type == packet.BINARY_EVENT or \
-                    pkt.packet_type == packet.BINARY_ACK:
+            elif pkt.packet_type in [packet.BINARY_EVENT, packet.BINARY_ACK]:
                 self._binary_packet[eio_sid] = pkt
             elif pkt.packet_type == packet.CONNECT_ERROR:
                 raise ValueError('Unexpected CONNECT_ERROR packet.')

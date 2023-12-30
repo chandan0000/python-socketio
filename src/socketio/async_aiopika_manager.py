@@ -117,8 +117,8 @@ class AsyncAioPikaManager(AsyncPubSubManager):  # pragma: no cover
                                 retry_sleep = 1
                 except aio_pika.AMQPException:
                     self._get_logger().error(
-                        'Cannot receive from rabbitmq... '
-                        'retrying in {} secs'.format(retry_sleep))
+                        f'Cannot receive from rabbitmq... retrying in {retry_sleep} secs'
+                    )
                     await asyncio.sleep(retry_sleep)
                     retry_sleep = min(retry_sleep * 2, 60)
                 except aio_pika.exceptions.ChannelInvalidStateError:

@@ -37,8 +37,7 @@ class BaseManager:
                 participants.update(ns[r]._fwdm if r in ns else {})
         else:
             participants = ns[room]._fwdm.copy() if room in ns else {}
-        for sid, eio_sid in participants.items():
-            yield sid, eio_sid
+        yield from participants.items()
 
     def connect(self, eio_sid, namespace):
         """Register a client connection to a namespace."""
@@ -87,16 +86,17 @@ class BaseManager:
     def basic_disconnect(self, sid, namespace, **kwargs):
         if namespace not in self.rooms:
             return
-        rooms = []
-        for room_name, room in self.rooms[namespace].copy().items():
-            if sid in room:
-                rooms.append(room_name)
+        rooms = [
+            room_name
+            for room_name, room in self.rooms[namespace].copy().items()
+            if sid in room
+        ]
         for room in rooms:
             self.basic_leave_room(sid, namespace, room)
         if sid in self.callbacks:
             del self.callbacks[sid]
         if namespace in self.pending_disconnect and \
-                sid in self.pending_disconnect[namespace]:
+                    sid in self.pending_disconnect[namespace]:
             self.pending_disconnect[namespace].remove(sid)
             if len(self.pending_disconnect[namespace]) == 0:
                 del self.pending_disconnect[namespace]
@@ -133,9 +133,11 @@ class BaseManager:
         """Return the rooms a client is in."""
         r = []
         try:
-            for room_name, room in self.rooms[namespace].items():
-                if room_name is not None and sid in room:
-                    r.append(room_name)
+            r.extend(
+                room_name
+                for room_name, room in self.rooms[namespace].items()
+                if room_name is not None and sid in room
+            )
         except KeyError:
             pass
         return r

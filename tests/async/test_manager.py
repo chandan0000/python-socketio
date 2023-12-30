@@ -151,7 +151,7 @@ class TestAsyncManager(unittest.TestCase):
         assert cb.mock.call_count == 0
 
     def test_get_namespaces(self):
-        assert list(self.bm.get_namespaces()) == []
+        assert not list(self.bm.get_namespaces())
         _run(self.bm.connect('123', '/'))
         _run(self.bm.connect('123', '/foo'))
         namespaces = list(self.bm.get_namespaces())

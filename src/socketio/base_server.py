@@ -139,16 +139,15 @@ class BaseServer:
             def my_event(data):
                 print('Received data: ', data)
         """
-        if len(args) == 1 and len(kwargs) == 0 and callable(args[0]):
+        if len(args) == 1 and not kwargs and callable(args[0]):
             # the decorator was invoked without arguments
             # args[0] is the decorated function
             return self.on(args[0].__name__)(args[0])
-        else:
-            # the decorator was invoked with arguments
-            def set_handler(handler):
-                return self.on(handler.__name__, *args, **kwargs)(handler)
+        # the decorator was invoked with arguments
+        def set_handler(handler):
+            return self.on(handler.__name__, *args, **kwargs)(handler)
 
-            return set_handler
+        return set_handler
 
     def register_namespace(self, namespace_handler):
         """Register a namespace handler object.

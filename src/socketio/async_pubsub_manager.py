@@ -35,7 +35,7 @@ class AsyncPubSubManager(AsyncManager):
         super().initialize()
         if not self.write_only:
             self.thread = self.server.start_background_task(self._thread)
-        self._get_logger().info(self.name + ' backend initialized.')
+        self._get_logger().info(f'{self.name} backend initialized.')
 
     async def emit(self, event, data, namespace=None, room=None, skip_sid=None,
                    callback=None, **kwargs):
@@ -95,19 +95,17 @@ class AsyncPubSubManager(AsyncManager):
             # client is in this server, so we can disconnect directly
             return await super().enter_room(sid, namespace, room,
                                             eio_sid=eio_sid)
-        else:
-            message = {'method': 'enter_room', 'sid': sid, 'room': room,
-                       'namespace': namespace or '/', 'host_id': self.host_id}
-            await self._publish(message)  # notify other hosts
+        message = {'method': 'enter_room', 'sid': sid, 'room': room,
+                   'namespace': namespace or '/', 'host_id': self.host_id}
+        await self._publish(message)  # notify other hosts
 
     async def leave_room(self, sid, namespace, room):
         if self.is_connected(sid, namespace):
             # client is in this server, so we can disconnect directly
             return await super().leave_room(sid, namespace, room)
-        else:
-            message = {'method': 'leave_room', 'sid': sid, 'room': room,
-                       'namespace': namespace or '/', 'host_id': self.host_id}
-            await self._publish(message)  # notify other hosts
+        message = {'method': 'leave_room', 'sid': sid, 'room': room,
+                   'namespace': namespace or '/', 'host_id': self.host_id}
+        await self._publish(message)  # notify other hosts
 
     async def close_room(self, room, namespace=None):
         message = {'method': 'close_room', 'room': room,
@@ -212,8 +210,7 @@ class AsyncPubSubManager(AsyncManager):
                             except:
                                 pass
                     if data and 'method' in data:
-                        self._get_logger().debug('pubsub message: {}'.format(
-                            data['method']))
+                        self._get_logger().debug(f"pubsub message: {data['method']}")
                         try:
                             if data['method'] == 'callback':
                                 await self._handle_callback(data)

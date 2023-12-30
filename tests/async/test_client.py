@@ -112,8 +112,7 @@ class TestAsyncClient(unittest.TestCase):
         assert c.connection_url == 'url'
         assert c.connection_headers == 'headers'
         assert c.connection_transports == 'transports'
-        assert c.connection_namespaces == ['/', '/foo'] or \
-            c.connection_namespaces == ['/foo', '/']
+        assert c.connection_namespaces in [['/', '/foo'], ['/foo', '/']]
         assert c.socketio_path == 'path'
         c.eio.connect.mock.assert_called_once_with(
             'url',
@@ -548,12 +547,15 @@ class TestAsyncClient(unittest.TestCase):
         c = async_client.AsyncClient()
         c.eio.send = AsyncMock()
         _run(c._send_packet(packet.Packet(packet.EVENT, b'foo')))
-        assert c.eio.send.mock.call_args_list == [
-            mock.call('51-{"_placeholder":true,"num":0}'),
-            mock.call(b'foo'),
-        ] or c.eio.send.mock.call_args_list == [
-            mock.call('51-{"num":0,"_placeholder":true}'),
-            mock.call(b'foo'),
+        assert c.eio.send.mock.call_args_list in [
+            [
+                mock.call('51-{"_placeholder":true,"num":0}'),
+                mock.call(b'foo'),
+            ],
+            [
+                mock.call('51-{"num":0,"_placeholder":true}'),
+                mock.call(b'foo'),
+            ],
         ]
 
     def test_send_packet_default_binary(self):
@@ -633,7 +635,7 @@ class TestAsyncClient(unittest.TestCase):
         c._trigger_event.mock.assert_any_call(
             '__disconnect_final', namespace='/bar'
         )
-        assert c.namespaces == {}
+        assert not c.namespaces
         assert not c.connected
 
     def test_handle_disconnect_unknown_namespace(self):
@@ -766,7 +768,7 @@ class TestAsyncClient(unittest.TestCase):
         c._trigger_event = AsyncMock()
         c.namespaces = {'/foo': '1', '/bar': '2'}
         _run(c._handle_error('/', 'error'))
-        assert c.namespaces == {}
+        assert not c.namespaces
         assert not c.connected
         c._connect_event.set.assert_called_once_with()
         c._trigger_event.mock.assert_called_once_with(
@@ -780,7 +782,7 @@ class TestAsyncClient(unittest.TestCase):
         c._trigger_event = AsyncMock()
         c.namespaces = {'/foo': '1', '/bar': '2'}
         _run(c._handle_error('/', None))
-        assert c.namespaces == {}
+        assert not c.namespaces
         assert not c.connected
         c._connect_event.set.assert_called_once_with()
         c._trigger_event.mock.assert_called_once_with('connect_error', '/')
@@ -848,10 +850,12 @@ class TestAsyncClient(unittest.TestCase):
         c = async_client.AsyncClient()
         result = []
 
+
+
         class MyNamespace(async_namespace.AsyncClientNamespace):
             def on_foo(self, a, b):
-                result.append(a)
-                result.append(b)
+                result.extend((a, b))
+
 
         c.register_namespace(MyNamespace('/'))
         _run(c._trigger_event('foo', '/', 1, '2'))
@@ -861,14 +865,16 @@ class TestAsyncClient(unittest.TestCase):
         c = async_client.AsyncClient()
         result = []
 
+
+
         class MyNamespace(async_namespace.AsyncClientNamespace):
             def on_foo(self, a, b):
-                result.append(a)
-                result.append(b)
+                result.extend((a, b))
+
 
         c.register_namespace(MyNamespace('/'))
         _run(c._trigger_event('foo', '/bar', 1, '2'))
-        assert result == []
+        assert not result
 
     @mock.patch(
         'asyncio.wait_for',

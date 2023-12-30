@@ -48,4 +48,4 @@ if __name__ == '__main__':
         print('uwsgi --http :5000 --gevent 1000 --http-websockets --master '
               '--wsgi-file latency.py --callable app')
     else:
-        print('Unknown async_mode: ' + sio.async_mode)
+        print(f'Unknown async_mode: {sio.async_mode}')
